@@ -14,24 +14,32 @@ import sys
 from datetime import datetime
 import numpy as np
 import random
+import einops as eops
 
 def inverse_sigmoid(x):
     return torch.log(x/(1-x))
 
 def PILtoTorch(pil_image, resolution):
+    """ 将 PIL 格式的图片转换为 torch 张量
+
+        :param PIL_image: shape(h, w, c)
+        :return resized_image: shape(c, h, w) 
+    """
     resized_image_PIL = pil_image.resize(resolution)
     resized_image = torch.from_numpy(np.array(resized_image_PIL)) / 255.0
-    if len(resized_image.shape) == 3:
-        return resized_image.permute(2, 0, 1)
-    else:
-        return resized_image.unsqueeze(dim=-1).permute(2, 0, 1)
+    if len(resized_image.shape) != 3:
+        resized_image = eops.rearrange(resized_image, 'h w -> h w 1')
+    resized_image = eops.rearrange(resized_image, 'h w c -> c h w')
+    return resized_image
 
 def get_expon_lr_func(
     lr_init, lr_final, lr_delay_steps=0, lr_delay_mult=1.0, max_steps=1000000
 ):
     """
-    Copied from Plenoxels
+    Copied from Plenoxels 
 
+    带学习率延迟的指数衰减学习率策略 
+    
     Continuous learning rate decay function. Adapted from JaxNeRF
     The returned rate is lr_init when step=0 and lr_final when step=max_steps, and
     is log-linearly interpolated elsewhere (equivalent to exponential decay).
@@ -39,6 +47,7 @@ def get_expon_lr_func(
     function of lr_delay_mult, such that the initial learning rate is
     lr_init*lr_delay_mult at the beginning of optimization but will be eased back
     to the normal learning rate when steps>lr_delay_steps.
+
     :param conf: config subtree 'lr' or similar
     :param max_steps: int, the number of steps during optimization.
     :return HoF which takes step as input
@@ -62,6 +71,14 @@ def get_expon_lr_func(
     return helper
 
 def strip_lowerdiag(L):
+    """ 提取矩阵的上三角元素
+
+        :param L: shape(?, 3, 3)
+        :return uncertainty: shape(?, 6)
+    """
+
+    if L.ndim < 2:
+        uncertainty = uncertainty.reshape(1, -1)
     uncertainty = torch.zeros((L.shape[0], 6), dtype=torch.float, device="cuda")
 
     uncertainty[:, 0] = L[:, 0, 0]
@@ -73,9 +90,19 @@ def strip_lowerdiag(L):
     return uncertainty
 
 def strip_symmetric(sym):
+    """ 压缩对称矩阵
+
+        :param sym: shape(?, 3, 3)
+        :return shape(?, 6)
+    """
     return strip_lowerdiag(sym)
 
 def build_rotation(r):
+    """ 从四元数构建旋转矩阵
+
+        :param r: shape(?, 4)
+        :return R: shape(?, 3, 3) 
+    """
     norm = torch.sqrt(r[:,0]*r[:,0] + r[:,1]*r[:,1] + r[:,2]*r[:,2] + r[:,3]*r[:,3])
 
     q = r / norm[:, None]
@@ -99,6 +126,12 @@ def build_rotation(r):
     return R
 
 def build_scaling_rotation(s, r):
+    """ 从 缩放矩阵 s 和 旋转矩阵 r 构建 L = Rt
+
+        :param s: shape(?, 3)
+        :param r: shape(?, 4)
+        :return L: shape(?, 3, 3)
+    """
     L = torch.zeros((s.shape[0], 3, 3), dtype=torch.float, device="cuda")
     R = build_rotation(r)
 
@@ -109,7 +142,11 @@ def build_scaling_rotation(s, r):
     L = R @ L
     return L
 
-def safe_state(silent):
+def safe_state(silent: bool):
+    """ 
+        1) 根据 silent 重载 stdout, 以实现日志输出
+        2) 固定随机数 py np torch cuda 
+    """
     old_f = sys.stdout
     class F:
         def __init__(self, silent):
