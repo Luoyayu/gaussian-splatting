@@ -78,7 +78,7 @@ def strip_lowerdiag(L):
     """
 
     if L.ndim < 2:
-        uncertainty = uncertainty.reshape(1, -1)
+        uncertainty = L.reshape(1, -1)
     uncertainty = torch.zeros((L.shape[0], 6), dtype=torch.float, device="cuda")
 
     uncertainty[:, 0] = L[:, 0, 0]
