@@ -17,11 +17,12 @@ class GroupParams:
     pass
 
 class ParamGroup:
-    def __init__(self, parser: ArgumentParser, name : str, fill_none = False):
-        group = parser.add_argument_group(name)
-        for key, value in vars(self).items():
+    """ 从类的属性中自动创建命令行参数组, 使用时继承此类"""
+    def __init__(self, parser: ArgumentParser, group_name : str, fill_none = False):
+        group = parser.add_argument_group(group_name)
+        for key, value in vars(self).items():         # 遍历 self 的所有属性, 相当于 self.__dict__.items() 得到类属性的kv元组
             shorthand = False
-            if key.startswith("_"):
+            if key.startswith("_"):                   # 前置下划线的属性为含缩写的参数名
                 shorthand = True
                 key = key[1:]
             t = type(value)
@@ -39,15 +40,15 @@ class ParamGroup:
 
     def extract(self, args):
         group = GroupParams()
-        for arg in vars(args).items():
-            if arg[0] in vars(self) or ("_" + arg[0]) in vars(self):
-                setattr(group, arg[0], arg[1])
+        for key, value in vars(args).items():
+            if key in vars(self) or ("_" + key) in vars(self):
+                setattr(group, key, value)
         return group
 
 class ModelParams(ParamGroup): 
     def __init__(self, parser, sentinel=False):
         self.sh_degree = 3
-        self._source_path = ""
+        self._source_path = "" # 相对路径 或者 绝对路径
         self._model_path = ""
         self._images = "images"
         self._resolution = -1
@@ -58,7 +59,7 @@ class ModelParams(ParamGroup):
 
     def extract(self, args):
         g = super().extract(args)
-        g.source_path = os.path.abspath(g.source_path)
+        g.source_path = os.path.abspath(g.source_path) # 绝对路径
         return g
 
 class PipelineParams(ParamGroup):
@@ -70,7 +71,7 @@ class PipelineParams(ParamGroup):
 
 class OptimizationParams(ParamGroup):
     def __init__(self, parser):
-        self.iterations = 30_000
+        self.iterations = 30_000                      # 训练步数
         self.position_lr_init = 0.00016
         self.position_lr_final = 0.0000016
         self.position_lr_delay_mult = 0.01
@@ -81,11 +82,11 @@ class OptimizationParams(ParamGroup):
         self.rotation_lr = 0.001
         self.percent_dense = 0.01
         self.lambda_dssim = 0.2
-        self.densification_interval = 100
-        self.opacity_reset_interval = 3000
-        self.densify_from_iter = 500
-        self.densify_until_iter = 15_000
-        self.densify_grad_threshold = 0.0002
+        self.densification_interval = 100             # 致密化的步数间隔
+        self.opacity_reset_interval = 3000            # 密度重置的步数间隔
+        self.densify_from_iter = 500                  # 致密化的起始步数
+        self.densify_until_iter = 15_000              # 致密化的终止步数
+        self.densify_grad_threshold = 0.0002          # 致密化的梯度阈值
         self.random_background = False
         super().__init__(parser, "Optimization Parameters")
 
