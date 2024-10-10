@@ -20,10 +20,10 @@ def inverse_sigmoid(x):
     return torch.log(x/(1-x))
 
 def PILtoTorch(pil_image, resolution):
-    """ 将 PIL 格式的图片转换为 torch 张量
+    """ 将 PIL 读取的图片转换为 torch 张量
 
-        :param PIL_image: shape(h, w, c)
-        :return resized_image: shape(c, h, w) 
+    :param pil_image: shape(h, w, c)
+    :return: resized_image: shape(c, h, w)
     """
     resized_image_PIL = pil_image.resize(resolution)
     resized_image = torch.from_numpy(np.array(resized_image_PIL)) / 255.0
@@ -50,7 +50,7 @@ def get_expon_lr_func(
 
     :param conf: config subtree 'lr' or similar
     :param max_steps: int, the number of steps during optimization.
-    :return HoF which takes step as input
+    :return: HoF which takes step as input
     """
 
     def helper(step):
@@ -73,8 +73,8 @@ def get_expon_lr_func(
 def strip_lowerdiag(L):
     """ 提取矩阵的上三角元素
 
-        :param L: shape(?, 3, 3)
-        :return uncertainty: shape(?, 6)
+    :param L: shape(?, 3, 3)
+    :return: uncertainty: shape(?, 6)
     """
 
     if L.ndim < 2:
@@ -92,16 +92,16 @@ def strip_lowerdiag(L):
 def strip_symmetric(sym):
     """ 压缩对称矩阵
 
-        :param sym: shape(?, 3, 3)
-        :return shape(?, 6)
+    :param sym: shape(?, 3, 3)
+    :return: shape(?, 6)
     """
     return strip_lowerdiag(sym)
 
 def build_rotation(r):
     """ 从四元数构建旋转矩阵
 
-        :param r: shape(?, 4)
-        :return R: shape(?, 3, 3) 
+    :param r: shape(?, 4)
+    :return: R: shape(?, 3, 3)
     """
     norm = torch.sqrt(r[:,0]*r[:,0] + r[:,1]*r[:,1] + r[:,2]*r[:,2] + r[:,3]*r[:,3])
 
@@ -128,9 +128,9 @@ def build_rotation(r):
 def build_scaling_rotation(s, r):
     """ 从 缩放矩阵 s 和 旋转矩阵 r 构建 L = Rt
 
-        :param s: shape(?, 3)
-        :param r: shape(?, 4)
-        :return L: shape(?, 3, 3)
+    :param s: shape(?, 3)
+    :param r: shape(?, 4)
+    :return: L: shape(?, 3, 3)
     """
     L = torch.zeros((s.shape[0], 3, 3), dtype=torch.float, device="cuda")
     R = build_rotation(r)

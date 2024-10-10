@@ -60,12 +60,11 @@ def eval_sh(deg, sh, dirs):
     using hardcoded SH polynomials.
     Works with torch/np/jnp.
     ... Can be 0 or more batch dimensions.
-    Args:
-        deg: int SH deg. Currently, 0-3 supported
-        sh: jnp.ndarray SH coeffs [..., C, (deg + 1) ** 2]
-        dirs: jnp.ndarray unit directions [..., 3]
-    Returns:
-        [..., C]
+
+    :param deg: int SH deg. Currently, 0-3 supported
+    :param sh: jnp.ndarray SH coeffs [..., C, (deg + 1) ** 2]
+    :param dirs: jnp.ndarray unit directions [..., 3]
+    :return: [..., C]
     """
     assert deg <= 4 and deg >= 0
     coeff = (deg + 1) ** 2

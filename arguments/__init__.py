@@ -17,7 +17,7 @@ class GroupParams:
     pass
 
 class ParamGroup:
-    """ 从类的属性中自动创建命令行参数组, 使用时继承此类"""
+    """ 从类的属性中自动创建命令行参数组, 使用时继承此类 """
     def __init__(self, parser: ArgumentParser, group_name : str, fill_none = False):
         group = parser.add_argument_group(group_name)
         for key, value in vars(self).items():         # 遍历 self 的所有属性, 相当于 self.__dict__.items() 得到类属性的kv元组
